@@ -83,6 +83,8 @@ cmake --version | head -1
 # ---------------------------------------------------------------- Quellcode
 if [ "$UPDATE" = "1" ]; then
   schritt "Hole den neuesten Stand von GitHub"
+  # die vom Skript selbst erzeugte Übersetzung darf das Update nicht blockieren
+  git -C "$REPO_DIR" checkout -- resources/i18n/de/BambuStudio.mo 2>/dev/null || true
   git -C "$REPO_DIR" pull --ff-only || echo "Hinweis: git pull nicht möglich, baue den vorhandenen Stand."
 fi
 echo "Stand: $(git -C "$REPO_DIR" log -1 --format='%h %s')"
