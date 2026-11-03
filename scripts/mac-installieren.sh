@@ -19,6 +19,8 @@ ZIEL="$HOME/Applications/$APP_NAME"
 VENV="$REPO_DIR/.build-werkzeuge"
 DEPS_FERTIG="$REPO_DIR/deps/build/$ARCH/BambuStudio_deps/usr/local"
 LOG="$REPO_DIR/build-$(date +%Y%m%d-%H%M).log"
+# Mindest-macOS = eigene Version. Das offizielle 10.15 wird von neuen SDKs (libc++) nicht mehr unterstützt.
+MACOS_ZIEL="$(sw_vers -productVersion 2>/dev/null | cut -d. -f1).0"
 
 DEPS_NEU=0; UPDATE=1; SAUBER=0
 for arg in "$@"; do
@@ -91,6 +93,13 @@ if [ "$DEPS_NEU" = "1" ]; then
   rm -rf "$REPO_DIR/deps/build/$ARCH"
 fi
 
+# Abhängigkeiten, die für ein anderes Mindest-macOS gebaut oder abgebrochen wurden, neu bauen
+ZIEL_MARKER="$REPO_DIR/deps/build/$ARCH/.macos-ziel"
+if [ -d "$REPO_DIR/deps/build/$ARCH" ] && [ "$(cat "$ZIEL_MARKER" 2>/dev/null)" != "$MACOS_ZIEL" ]; then
+  schritt "Lösche Abhängigkeiten eines anderen oder abgebrochenen Builds"
+  rm -rf "$REPO_DIR/deps/build/$ARCH"
+fi
+
 if [ ! -d "$DEPS_FERTIG" ]; then
   schritt "Baue Abhängigkeiten (einmalig, dauert lange)"
   # Eine installierte zstd-Bibliothek von Homebrew stört den Abhängigkeits-Build.
@@ -99,10 +108,12 @@ if [ ! -d "$DEPS_FERTIG" ]; then
     brew unlink zstd >/dev/null && ZSTD_WIEDER=1
   fi
   trap '[ "$ZSTD_WIEDER" = "1" ] && brew link zstd >/dev/null' EXIT
-  ./BuildMac.sh -d -x -a "$ARCH"
+  echo "Mindest-macOS: $MACOS_ZIEL"
+  ./BuildMac.sh -d -x -a "$ARCH" -t "$MACOS_ZIEL"
   [ "$ZSTD_WIEDER" = "1" ] && brew link zstd >/dev/null; trap - EXIT
   # Zwischendateien entfernen, nur das Ergebnis behalten (spart viele GB)
   (cd "$REPO_DIR/deps/build/$ARCH" && find . -mindepth 1 -maxdepth 1 ! -name 'BambuStudio_deps' -exec rm -rf {} +)
+  echo "$MACOS_ZIEL" > "$ZIEL_MARKER"
 else
   schritt "Abhängigkeiten sind schon gebaut"
 fi
@@ -114,7 +125,7 @@ if [ "$SAUBER" = "1" ]; then
 fi
 
 schritt "Baue Bambu Studio Multi"
-./BuildMac.sh -s -x -a "$ARCH"
+./BuildMac.sh -s -x -a "$ARCH" -t "$MACOS_ZIEL"
 
 GEBAUT="$REPO_DIR/build/$ARCH/BambuStudio/BambuStudio.app"
 [ -d "$GEBAUT" ] || fehler "Die App wurde nicht gefunden: $GEBAUT"
