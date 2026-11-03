@@ -42,6 +42,29 @@ Optionen: `--ohne-update` (kein git pull), `--sauber` (App-Build neu von vorn), 
 
 Bambu Studio Multi nutzt dieselben Einstellungen, Druckerprofile und dieselbe Anmeldung wie das offizielle Bambu Studio. Öffne nicht beide Apps gleichzeitig.
 
+## App unter Windows bauen
+
+Voraussetzungen: Windows 10/11 (64 Bit), [winget](https://aka.ms/getwinget) (in Windows 11 schon enthalten) und etwa 30 GB freier Speicher. Das Skript installiert fehlende Werkzeuge selbst: Git, Visual Studio Build Tools mit C++, Strawberry Perl und pkg-config. CMake 3.31 lädt es in den Ordner `.build-werkzeuge` im Repo.
+
+Wichtig: Klone das Repo in einen **kurzen Pfad**. Windows bekommt sonst beim Bauen der Abhängigkeiten Probleme mit zu langen Dateipfaden.
+
+```bat
+git clone https://github.com/MitKIprogrammieren/BambuStudioMulti.git C:\BSM
+```
+
+Danach im Ordner `C:\BSM` doppelt auf **„Bambu Studio Multi aktualisieren (Windows).bat“** klicken.
+
+- Der erste Lauf dauert etwa 1–2 Stunden, jeder weitere etwa 10–30 Minuten.
+- Die App landet in `%LOCALAPPDATA%\Programs\Bambu Studio Multi`, dazu kommen Verknüpfungen im Startmenü und auf dem Desktop.
+- Falls Windows beim ersten Mal die Visual Studio Build Tools installiert, kann ein Neustart nötig sein. Danach die Datei einfach erneut starten.
+- Das Protokoll liegt als `build-DATUM.log` im Repo-Ordner.
+
+## Zusammen daran arbeiten
+
+1. Auf GitHub im Repo unter **Settings → Collaborators → Add people** den GitHub-Namen des Mitstreiters eintragen. Er bekommt eine Einladung per Mail.
+2. Am besten arbeitet jeder in einem eigenen Branch und führt die Änderungen per Pull Request in `master` zusammen. Dann kommt sich niemand in die Quere.
+3. Das Mac-Skript und das Windows-Skript bauen denselben Code. Änderungen an der Funktion gelten also für beide Systeme.
+
 ## Gespeichert in der 3MF
 
 Die Zuteilung wird pro Platte in `Metadata/model_settings.config` gespeichert:
