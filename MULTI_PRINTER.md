@@ -17,6 +17,25 @@ Ablauf pro Platte:
 
 Platten werden nach Druckerprofil gruppiert. So wird das Profil so selten wie möglich gewechselt, und die Platten des aktuell gewählten Druckers kommen zuerst dran.
 
+## App auf dem Mac bauen
+
+Voraussetzungen: Xcode-Kommandozeilenwerkzeuge, [Homebrew](https://brew.sh) und etwa 25 GB freier Speicher.
+
+```bash
+git clone https://github.com/MitKIprogrammieren/BambuStudioMulti.git
+cd BambuStudioMulti
+./scripts/mac-installieren.sh
+```
+
+- Der **erste Lauf** baut alle Abhängigkeiten und dauert etwa 1–2 Stunden. Jeder weitere Lauf holt den neuesten Stand und baut nur die App neu, das dauert etwa 10–30 Minuten.
+- Die fertige App liegt in **~/Applications/BambuStudio Multi.app**. Das offizielle Bambu Studio bleibt unverändert daneben.
+- CMake 3.31 und Ninja installiert das Skript in den Ordner `.build-werkzeuge` im Repo. Deine Homebrew-Installation wird nicht umgestellt.
+- Jeder Lauf schreibt ein Protokoll `build-DATUM.log` in den Repo-Ordner.
+
+Optionen: `--ohne-update` (kein git pull), `--sauber` (App-Build neu von vorn), `--abhaengigkeiten-neu` (Abhängigkeiten komplett neu bauen).
+
+Bambu Studio Multi nutzt dieselben Einstellungen, Druckerprofile und dieselbe Anmeldung wie das offizielle Bambu Studio. Öffne nicht beide Apps gleichzeitig.
+
 ## Gespeichert in der 3MF
 
 Die Zuteilung wird pro Platte in `Metadata/model_settings.config` gespeichert:
