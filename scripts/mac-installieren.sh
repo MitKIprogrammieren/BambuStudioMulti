@@ -19,8 +19,9 @@ ZIEL="$HOME/Applications/$APP_NAME"
 VENV="$REPO_DIR/.build-werkzeuge"
 DEPS_FERTIG="$REPO_DIR/deps/build/$ARCH/BambuStudio_deps/usr/local"
 LOG="$REPO_DIR/build-$(date +%Y%m%d-%H%M).log"
-# Mindest-macOS = eigene Version. Das offizielle 10.15 wird von neuen SDKs (libc++) nicht mehr unterstützt.
-MACOS_ZIEL="$(sw_vers -productVersion 2>/dev/null | cut -d. -f1).0"
+# Mindest-macOS 14.0: Das offizielle 10.15 lehnt die libc++ neuer SDKs ab,
+# ab 15.0 fehlen Funktionen, die wxWidgets noch braucht (CGDisplayCreateImage).
+MACOS_ZIEL="14.0"
 
 DEPS_NEU=0; UPDATE=1; SAUBER=0
 for arg in "$@"; do
