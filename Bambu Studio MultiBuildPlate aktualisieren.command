@@ -5,8 +5,8 @@ cd "$(dirname "$0")" || exit 1
 status=$?
 echo
 if [ $status -eq 0 ]; then
-  echo "Fertig. Bambu Lab Studio Multi wird gestartet."
-  open "$HOME/Applications/Bambu Lab Studio Multi.app"
+  echo "Fertig. Bambu Studio MultiBuildPlate wird gestartet."
+  open "$HOME/Applications/Bambu Studio MultiBuildPlate.app"
 else
   echo "Das Update ist fehlgeschlagen (Code $status). Das Protokoll liegt als build-*.log im Ordner $(pwd)."
 fi

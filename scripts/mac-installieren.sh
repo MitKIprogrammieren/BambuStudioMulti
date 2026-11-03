@@ -1,5 +1,5 @@
 #!/bin/bash
-# bambustudiomulti – baut „Bambu Lab Studio Multi“ auf dem Mac und installiert sie nach ~/Applications
+# bambustudiomulti – baut „Bambu Studio MultiBuildPlate“ auf dem Mac und installiert sie nach ~/Applications
 #
 # Aufruf aus dem Repo-Ordner:
 #   ./scripts/mac-installieren.sh             # holt den neuesten Stand, baut, installiert
@@ -14,8 +14,8 @@ set -o pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARCH="$(uname -m)"                       # arm64 auf Apple-Silicon
-APP_NAME="Bambu Lab Studio Multi.app"
-ALTER_NAME="BambuStudio Multi.app"   # früherer Name, wird entfernt
+APP_NAME="Bambu Studio MultiBuildPlate.app"
+ALTE_NAMEN=("BambuStudio Multi.app" "Bambu Lab Studio Multi.app")   # frühere Namen, werden entfernt
 ZIEL="$HOME/Applications/$APP_NAME"
 VENV="$REPO_DIR/.build-werkzeuge"
 DEPS_FERTIG="$REPO_DIR/deps/build/$ARCH/BambuStudio_deps/usr/local"
@@ -134,7 +134,7 @@ if [ "$SAUBER" = "1" ]; then
   rm -rf "$REPO_DIR/build/$ARCH"
 fi
 
-schritt "Baue Bambu Lab Studio Multi"
+schritt "Baue Bambu Studio MultiBuildPlate"
 ./BuildMac.sh -s -x -a "$ARCH" -t "$MACOS_ZIEL"
 
 GEBAUT="$REPO_DIR/build/$ARCH/BambuStudio/BambuStudio.app"
@@ -144,16 +144,16 @@ GEBAUT="$REPO_DIR/build/$ARCH/BambuStudio/BambuStudio.app"
 schritt "Installiere nach $ZIEL"
 mkdir -p "$HOME/Applications"
 if pgrep -f "$APP_NAME/Contents/MacOS" >/dev/null; then
-  echo "Bambu Lab Studio Multi läuft noch und wird beendet."
+  echo "Bambu Studio MultiBuildPlate läuft noch und wird beendet."
   pkill -f "$APP_NAME/Contents/MacOS" || true
   sleep 2
 fi
 rm -rf "$ZIEL"
-rm -rf "$HOME/Applications/$ALTER_NAME"
+for alt in "${ALTE_NAMEN[@]}"; do rm -rf "$HOME/Applications/$alt"; done
 cp -R "$GEBAUT" "$ZIEL"
-/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Bambu Lab Studio Multi" "$ZIEL/Contents/Info.plist" 2>/dev/null \
-  || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Bambu Lab Studio Multi" "$ZIEL/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleName Bambu Lab Studio Multi" "$ZIEL/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Bambu Studio MultiBuildPlate" "$ZIEL/Contents/Info.plist" 2>/dev/null \
+  || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Bambu Studio MultiBuildPlate" "$ZIEL/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleName Bambu Studio MultiBuildPlate" "$ZIEL/Contents/Info.plist" 2>/dev/null || true
 xattr -cr "$ZIEL"
 codesign --force --deep --sign - "$ZIEL" >/dev/null 2>&1 || echo "Hinweis: Ad-hoc-Signatur fehlgeschlagen, die App startet trotzdem meist."
 
