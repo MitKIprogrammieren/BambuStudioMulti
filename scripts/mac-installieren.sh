@@ -45,7 +45,18 @@ xcode-select -p >/dev/null 2>&1 || {
   xcode-select --install || true
   fehler "Bitte nach der Installation das Skript erneut starten."
 }
-command -v brew >/dev/null 2>&1 || fehler "Homebrew fehlt. Installation: https://brew.sh"
+# Homebrew ist oft installiert, aber nicht im PATH (z. B. in einem neuen Terminal)
+if ! command -v brew >/dev/null 2>&1; then
+  for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    [ -x "$b" ] && eval "$("$b" shellenv)" && break
+  done
+fi
+command -v brew >/dev/null 2>&1 || fehler "Homebrew fehlt. Installieren mit:
+  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"
+Danach:
+  echo 'eval \"\$(/opt/homebrew/bin/brew shellenv)\"' >> ~/.zprofile
+  eval \"\$(/opt/homebrew/bin/brew shellenv)\"
+und dieses Skript erneut starten."
 
 FREI_GB=$(df -g "$REPO_DIR" | awk 'NR==2 {print $4}')
 [ "$FREI_GB" -ge 25 ] || fehler "Zu wenig Speicherplatz: ${FREI_GB} GB frei, nötig sind etwa 25 GB."
