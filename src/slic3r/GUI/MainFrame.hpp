@@ -280,7 +280,8 @@ public:
         eUploadGcode         = 7,
         eExportAllSlicedFile = 8,
         ePrintMultiMachine   = 9,
-        eSendMultiApp        = 10
+        eSendMultiApp        = 10,
+        ePrintAssigned       = 11  // bambustudiomulti: send each plate to its assigned printer
     };
 
     void update_layout();

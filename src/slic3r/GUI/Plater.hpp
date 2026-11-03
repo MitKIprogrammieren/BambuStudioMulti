@@ -572,6 +572,12 @@ public:
     void merge(size_t obj_idx, std::vector<int> &vol_indeces);
 
     void send_to_printer(bool isall = false);
+    // bambustudiomulti: per-plate printer assignment
+    void assign_printer_to_plate(int plate_idx, const std::string &dev_id, const std::string &dev_name);
+    bool has_any_assigned_plate() const;
+    // slice every assigned plate with its printer profile and send it to its printer
+    void send_to_assigned_printers();
+    bool is_sending_to_assigned_printers() const;
     void export_gcode(bool prefer_removable);
     void export_gcode_3mf(bool export_all = false);
     void send_gcode_finish(wxString name);

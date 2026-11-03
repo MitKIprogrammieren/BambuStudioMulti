@@ -166,6 +166,10 @@ private:
     // part plate name
     std::string          m_name;        // utf8 string
     bool                 m_name_change = false;
+    // bambustudiomulti: printer assigned to this plate (empty = none)
+    std::string          m_assigned_dev_id;        // MachineObject dev_id
+    std::string          m_assigned_dev_name;      // display name of the printer
+    std::string          m_assigned_printer_preset; // system printer preset matching the device
     GLModel              m_plate_name_icon;
     mutable unsigned int m_plate_name_vbo_id{0};
     GLTexture            m_name_texture;
@@ -308,6 +312,19 @@ public:
     bool        generate_plate_name_texture();
     // set the plate's name
     void set_plate_name(const std::string &name);
+
+    // bambustudiomulti: per-plate printer assignment
+    bool               has_assigned_printer() const { return !m_assigned_dev_id.empty(); }
+    const std::string &get_assigned_dev_id() const { return m_assigned_dev_id; }
+    const std::string &get_assigned_dev_name() const { return m_assigned_dev_name; }
+    const std::string &get_assigned_printer_preset() const { return m_assigned_printer_preset; }
+    void               set_assigned_printer(const std::string &dev_id, const std::string &dev_name, const std::string &printer_preset);
+    void               clear_assigned_printer() { set_assigned_printer("", "", ""); }
+    // used when loading a project: no snapshot, no slice invalidation
+    void               load_assigned_printer(const std::string &dev_id, const std::string &dev_name, const std::string &printer_preset)
+    {
+        m_assigned_dev_id = dev_id; m_assigned_dev_name = dev_name; m_assigned_printer_preset = printer_preset; m_name_change = true;
+    }
 
     void set_timelapse_warning_code(int code) { m_timelapse_warning_code = code; }
     int  timelapse_warning_code() { return m_timelapse_warning_code; }
@@ -606,7 +623,7 @@ public:
         std::vector<std::pair<int, int>>	objects_and_instances;
         std::vector<std::pair<int, int>>	instances_outside;
 
-        ar(m_plate_index, m_print_index, m_locked, m_selected, m_ready_for_slice, m_slice_result_valid, m_apply_invalid, m_printable, m_tmp_gcode_path, objects_and_instances, instances_outside, m_config, m_name, m_wipe_tower_placed);
+        ar(m_plate_index, m_print_index, m_locked, m_selected, m_ready_for_slice, m_slice_result_valid, m_apply_invalid, m_printable, m_tmp_gcode_path, objects_and_instances, instances_outside, m_config, m_name, m_wipe_tower_placed, m_assigned_dev_id, m_assigned_dev_name, m_assigned_printer_preset);
 
         for (std::vector<std::pair<int, int>>::iterator it = objects_and_instances.begin(); it != objects_and_instances.end(); ++it)
             obj_to_instance_set.insert(std::pair(it->first, it->second));
@@ -624,7 +641,7 @@ public:
         for (std::set<std::pair<int, int>>::iterator it = obj_to_instance_set.begin(); it != obj_to_instance_set.end(); ++it)
             objects_and_instances.emplace_back(it->first, it->second);
 
-        ar(m_plate_index, m_print_index, m_locked, m_selected, m_ready_for_slice, m_slice_result_valid, m_apply_invalid, m_printable,m_tmp_gcode_path, objects_and_instances, instances_outside, m_config, m_name, m_wipe_tower_placed);
+        ar(m_plate_index, m_print_index, m_locked, m_selected, m_ready_for_slice, m_slice_result_valid, m_apply_invalid, m_printable,m_tmp_gcode_path, objects_and_instances, instances_outside, m_config, m_name, m_wipe_tower_placed, m_assigned_dev_id, m_assigned_dev_name, m_assigned_printer_preset);
     }
     /*template<class Archive> void serialize(Archive& ar)
     {

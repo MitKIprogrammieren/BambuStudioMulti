@@ -1,5 +1,8 @@
 #include "PlateSettingsDialog.hpp"
 #include "MsgDialog.hpp"
+#include "GUI_App.hpp"
+#include "DeviceManager.hpp"
+#include "DeviceCore/DevManager.h"
 #include "libslic3r/FilamentMixer.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -382,6 +385,28 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     top_sizer->AddGrowableCol(0,1);
     top_sizer->SetFlexibleDirection(wxBOTH);
     top_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+
+    // bambustudiomulti: printer assigned to this plate
+    m_printer_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240), -1), 0, NULL, wxCB_READONLY);
+    m_printer_entries.clear();
+    m_printer_entries.emplace_back("", "");
+    m_printer_choice->Append(_L("No printer assigned"));
+    if (Slic3r::DeviceManager *dev = wxGetApp().getDeviceManager()) {
+        for (auto &[dev_id, obj] : dev->get_my_machine_list()) {
+            if (!obj) continue;
+            wxString label = from_u8(obj->get_dev_name());
+            wxString model = obj->get_printer_type_display_str();
+            if (!model.empty()) label += " (" + model + ")";
+            if (!obj->is_online()) label += " - " + _L("Offline");
+            m_printer_choice->Append(label);
+            m_printer_entries.emplace_back(dev_id, obj->get_dev_name());
+        }
+    }
+    m_printer_choice->SetSelection(0);
+    wxStaticText* printer_txt = new wxStaticText(this, wxID_ANY, _L("Printer"));
+    printer_txt->SetFont(Label::Body_14);
+    top_sizer->Add(printer_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
+    top_sizer->Add(m_printer_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
 
     // Plate type
     m_bed_type_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240),-1), 0, NULL, wxCB_READONLY );
@@ -792,3 +817,35 @@ void PlateNameEditDialog::set_plate_name(const wxString &name) {
 
 }
 } // namespace Slic3r::GUI
+
+namespace Slic3r { namespace GUI {
+// bambustudiomulti
+void PlateSettingsDialog::sync_printer(const std::string &dev_id, const std::string &dev_name)
+{
+    if (!m_printer_choice) return;
+    if (dev_id.empty()) { m_printer_choice->SetSelection(0); return; }
+    for (size_t i = 1; i < m_printer_entries.size(); ++i) {
+        if (m_printer_entries[i].first == dev_id) { m_printer_choice->SetSelection(int(i)); return; }
+    }
+    // assigned printer is currently not in the device list: keep it selectable
+    m_printer_choice->Append(from_u8(dev_name) + " - " + _L("Not found"));
+    m_printer_entries.emplace_back(dev_id, dev_name);
+    m_printer_choice->SetSelection(int(m_printer_entries.size() - 1));
+}
+
+std::string PlateSettingsDialog::get_printer_choice() const
+{
+    if (!m_printer_choice) return {};
+    int sel = m_printer_choice->GetSelection();
+    if (sel <= 0 || sel >= int(m_printer_entries.size())) return {};
+    return m_printer_entries[sel].first;
+}
+
+std::string PlateSettingsDialog::get_printer_choice_name() const
+{
+    if (!m_printer_choice) return {};
+    int sel = m_printer_choice->GetSelection();
+    if (sel <= 0 || sel >= int(m_printer_entries.size())) return {};
+    return m_printer_entries[sel].second;
+}
+}} // namespace Slic3r::GUI

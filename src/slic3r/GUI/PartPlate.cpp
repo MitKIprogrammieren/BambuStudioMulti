@@ -2767,6 +2767,11 @@ bool PartPlate::generate_plate_name_texture()
 	auto     bed_ext        = get_extents(m_shape);
 	int      bed_width      = bed_ext.size()(0);
 	wxString cur_plate_name = from_u8(m_name);
+	// bambustudiomulti: show the assigned printer next to the plate name
+	if (!m_assigned_dev_name.empty()) {
+		wxString printer_label = wxString::FromUTF8("\u2192 ") + from_u8(m_assigned_dev_name);
+		cur_plate_name = cur_plate_name.empty() ? printer_label : cur_plate_name + "  " + printer_label;
+	}
 	wxGCDC   dc;
 	wxString limitTextWidth = wxControl::Ellipsize(cur_plate_name, dc, wxELLIPSIZE_END, bed_width);
 	if (limitTextWidth.size() ==4 && limitTextWidth.rfind("...") != std::string::npos && cur_plate_name.rfind('&') != std::string::npos) {
@@ -2802,6 +2807,21 @@ bool PartPlate::generate_plate_name_texture()
     calc_vertex_for_plate_name(m_name_texture, m_plate_name_icon);
     calc_vertex_for_plate_name_edit_icon(&m_name_texture, 0, m_plate_name_edit_icon);
 	return true;
+}
+
+void PartPlate::set_assigned_printer(const std::string &dev_id, const std::string &dev_name, const std::string &printer_preset)
+{
+	if (m_assigned_dev_id == dev_id && m_assigned_dev_name == dev_name && m_assigned_printer_preset == printer_preset)
+		return;
+	if (m_plater)
+		m_plater->take_snapshot("set_plate_printer");
+	bool preset_changed       = m_assigned_printer_preset != printer_preset;
+	m_assigned_dev_id         = dev_id;
+	m_assigned_dev_name       = dev_name;
+	m_assigned_printer_preset = printer_preset;
+	m_name_change             = true;
+	if (preset_changed)
+		update_slice_result_valid_state(false);
 }
 
 std::string remove_invisible_ascii(const std::string &name)
@@ -7468,6 +7488,9 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 		plate_data_item->locked = m_plate_list[i]->m_locked;
 		plate_data_item->plate_index = m_plate_list[i]->m_plate_index;
 		plate_data_item->plate_name  = m_plate_list[i]->get_plate_name();
+		plate_data_item->assigned_dev_id         = m_plate_list[i]->get_assigned_dev_id();
+		plate_data_item->assigned_dev_name       = m_plate_list[i]->get_assigned_dev_name();
+		plate_data_item->assigned_printer_preset = m_plate_list[i]->get_assigned_printer_preset();
 		BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% before load, width %2%, height %3%, size %4%!")
 			%(i+1) %m_plate_list[i]->thumbnail_data.width %m_plate_list[i]->thumbnail_data.height %m_plate_list[i]->thumbnail_data.pixels.size();
 		plate_data_item->plate_thumbnail.load_from(m_plate_list[i]->thumbnail_data);
@@ -7607,6 +7630,8 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
 		m_plate_list[index]->m_locked = plate_data_list[i]->locked;
 		m_plate_list[index]->config()->apply(plate_data_list[i]->config);
         m_plate_list[index]->set_plate_name(plate_data_list[i]->plate_name);
+        m_plate_list[index]->load_assigned_printer(plate_data_list[i]->assigned_dev_id, plate_data_list[i]->assigned_dev_name,
+                                                   plate_data_list[i]->assigned_printer_preset);
 
         // Check filament_map_mode compatibility
         // If quality mode or convenience mode is not supported (all extruders have same type),

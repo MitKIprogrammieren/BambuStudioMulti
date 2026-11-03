@@ -100,6 +100,12 @@ public:
     );
 
     ~PlateSettingsDialog();
+    // bambustudiomulti: printer assignment of the plate
+    void sync_printer(const std::string &dev_id, const std::string &dev_name);
+    // returns the dev_id of the chosen printer, empty = none
+    std::string get_printer_choice() const;
+    // display name of the chosen printer (as shown in the device list)
+    std::string get_printer_choice_name() const;
     void sync_bed_type(BedType type);
     void sync_print_seq(int print_seq = 0);
     void sync_first_layer_print_seq(int selection, const std::vector<int>& seq = std::vector<int>());
@@ -160,6 +166,8 @@ protected:
     void delete_layers();
 
 protected:
+    ComboBox* m_printer_choice { nullptr };
+    std::vector<std::pair<std::string, std::string>> m_printer_entries; // dev_id, dev_name ; index 0 = none
     ComboBox* m_bed_type_choice { nullptr };
     std::vector<BedType> m_cur_combox_bed_types;
     ComboBox* m_print_seq_choice { nullptr };

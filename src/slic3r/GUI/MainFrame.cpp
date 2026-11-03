@@ -2294,6 +2294,8 @@ wxBoxSizer* MainFrame::create_side_tools()
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_TO_PRINTER_ALL));
             else if (m_print_select == eSendMultiApp)
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_MULTI_APP));
+            else if (m_print_select == ePrintAssigned)
+                m_plater->send_to_assigned_printers();
             /* else if (m_print_select == ePrintMultiMachine)
                  wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_MULTI_MACHINE));*/
         });
@@ -2458,8 +2460,21 @@ wxBoxSizer* MainFrame::create_side_tools()
                     p->Dismiss();
                     });
 
+                // bambustudiomulti
+                SideButton* print_assigned_btn = new SideButton(p, _L("Send to assigned printers"), "");
+                print_assigned_btn->SetCornerRadius(0);
+                print_assigned_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Send to assigned printers"));
+                    m_print_select = ePrintAssigned;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    p->Dismiss();
+                    });
+
                 p->append_button(print_plate_btn);
                 p->append_button(print_all_btn);
+                p->append_button(print_assigned_btn);
                 p->append_button(send_to_printer_btn);
                 p->append_button(send_to_printer_all_btn);
                 p->append_button(export_sliced_file_btn);
@@ -2576,6 +2591,9 @@ bool MainFrame::get_enable_print_status()
     PartPlateList &part_plate_list = m_plater->get_partplate_list();
     PartPlate *current_plate = part_plate_list.get_curr_plate();
     bool is_all_plates = wxGetApp().plater()->get_preview_canvas3D()->is_all_plates_selected();
+    // bambustudiomulti: slicing happens during the run, only an assignment is needed
+    if (m_print_select == ePrintAssigned)
+        return !m_plater->only_gcode_mode() && m_plater->has_any_assigned_plate() && !m_plater->is_sending_to_assigned_printers();
     if (m_print_select == ePrintAll)
     {
         if (m_plater->only_gcode_mode())
@@ -2715,7 +2733,7 @@ void MainFrame::update_slice_print_status(SlicePrintEventType event, bool can_sl
         if (m_slice_select == eSlicePlate)
             enable_slice = false;
     }
-    if (!can_print)
+    if (!can_print && m_print_select != ePrintAssigned) // bambustudiomulti: the run slices by itself
         enable_print = false;
 
 

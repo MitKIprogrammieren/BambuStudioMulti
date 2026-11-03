@@ -364,6 +364,9 @@ static constexpr const char* INSTANCEID_ATTR = "instance_id";
 static constexpr const char* IDENTIFYID_ATTR = "identify_id";
 static constexpr const char* PLATERID_ATTR = "plater_id";
 static constexpr const char* PLATER_NAME_ATTR  = "plater_name";
+static constexpr const char* ASSIGNED_DEV_ID_ATTR         = "assigned_dev_id";
+static constexpr const char* ASSIGNED_DEV_NAME_ATTR       = "assigned_dev_name";
+static constexpr const char* ASSIGNED_PRINTER_PRESET_ATTR = "assigned_printer_preset";
 static constexpr const char* PLATE_IDX_ATTR = "index";
 static constexpr const char* PRINTER_MODEL_ID_ATTR = "printer_model_id";
 static constexpr const char* EXTRUDER_TYPE_ATTR = "extruder_type";
@@ -2731,6 +2734,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             plate_data_list[it->first-1]->locked = it->second->locked;
             plate_data_list[it->first-1]->plate_index = it->second->plate_index-1;
             plate_data_list[it->first-1]->plate_name  = it->second->plate_name;
+            plate_data_list[it->first-1]->assigned_dev_id         = it->second->assigned_dev_id;
+            plate_data_list[it->first-1]->assigned_dev_name       = it->second->assigned_dev_name;
+            plate_data_list[it->first-1]->assigned_printer_preset = it->second->assigned_printer_preset;
             plate_data_list[it->first-1]->obj_inst_map = it->second->obj_inst_map;
             plate_data_list[it->first-1]->gcode_file = (m_load_restore || it->second->gcode_file.empty()) ? it->second->gcode_file : bbs_join_path_within_dir(m_backup_path, it->second->gcode_file);
             plate_data_list[it->first-1]->gcode_prediction = it->second->gcode_prediction;
@@ -4969,6 +4975,15 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
             else if (key == PLATER_NAME_ATTR) {
                 m_curr_plater->plate_name = xml_unescape(value.c_str());
+            }
+            else if (key == ASSIGNED_DEV_ID_ATTR) {
+                m_curr_plater->assigned_dev_id = xml_unescape(value.c_str());
+            }
+            else if (key == ASSIGNED_DEV_NAME_ATTR) {
+                m_curr_plater->assigned_dev_name = xml_unescape(value.c_str());
+            }
+            else if (key == ASSIGNED_PRINTER_PRESET_ATTR) {
+                m_curr_plater->assigned_printer_preset = xml_unescape(value.c_str());
             }
             else if (key == LOCK_ATTR)
             {
@@ -8759,6 +8774,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PLATERID_ATTR << "\" " << VALUE_ATTR << "=\"" << plate_data->plate_index + 1 << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PLATER_NAME_ATTR << "\" " << VALUE_ATTR << "=\"" <<  xml_escape(plate_data->plate_name.c_str()) << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LOCK_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->locked<< "\"/>\n";
+                if (!plate_data->assigned_dev_id.empty()) {
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ASSIGNED_DEV_ID_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape(plate_data->assigned_dev_id) << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ASSIGNED_DEV_NAME_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape(plate_data->assigned_dev_name) << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << ASSIGNED_PRINTER_PRESET_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape(plate_data->assigned_printer_preset) << "\"/>\n";
+                }
                 ConfigOption* bed_type_opt = plate_data->config.option("curr_bed_type");
                 t_config_enum_names bed_type_names = ConfigOptionEnum<BedType>::get_enum_names();
                 if (bed_type_opt != nullptr && bed_type_names.size() > bed_type_opt->getInt())

@@ -498,6 +498,8 @@ public:
     void finish_mode();
 	void sync_ams_mapping_result(const std::vector<FilamentInfo>& result);
     void prepare(int print_plate_idx);
+    // bambustudiomulti: preselect this printer when the dialog opens
+    void set_preferred_printer(const std::string &dev_id) { m_printer_last_select = dev_id; }
     void show_status(PrintDialogStatus status,
                      std::vector<wxString> params = std::vector<wxString>(),
                      wxString wiki_url = wxEmptyString,

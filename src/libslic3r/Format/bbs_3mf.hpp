@@ -113,6 +113,10 @@ struct PlateData
     std::string     gcode_weight;
     std::string     first_layer_time;
     std::string     plate_name;
+    // bambustudiomulti: printer assigned to this plate
+    std::string     assigned_dev_id;
+    std::string     assigned_dev_name;
+    std::string     assigned_printer_preset;
     std::vector<FilamentInfo> slice_filaments_info;
     // Mixed (virtual) filaments used by this plate; empty when no mixed filament is used.
     std::vector<PlateMixedFilamentInfo> mixed_filaments_info;

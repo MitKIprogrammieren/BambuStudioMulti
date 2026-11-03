@@ -21107,6 +21107,53 @@ msgstr ""
 "Zuverlässigkeit auf Anhieb\n"
 "Weniger Überwachung, vorhersagbarere Ausgabe. Beispiel: Eine kleine Farm, die PETG-Teile druckt, vermeidet Überraschungen wie \"Ausfall in Stunde 6\" und hält Chargen im Zeitplan."
 
+
+# bambustudiomulti
+msgid "No printer assigned"
+msgstr "Kein Drucker zugeteilt"
+
+msgid "Not found"
+msgstr "Nicht gefunden"
+
+msgid "No printer profile was found for \"%s\". Install the profile of this printer model first."
+msgstr "Für „%s“ wurde kein Druckerprofil gefunden. Installiere zuerst das Profil dieses Druckermodells."
+
+msgid "No plate has a printer assigned. Assign a printer in the plate settings (gear icon above the plate)."
+msgstr "Keiner Platte ist ein Drucker zugeteilt. Teile einen Drucker in den Platteneinstellungen zu (Zahnrad über der Platte)."
+
+msgid "Send to assigned printers"
+msgstr "An zugewiesene Drucker senden"
+
+msgid "Plate %d"
+msgstr "Platte %d"
+
+msgid "printer profile not found"
+msgstr "Druckerprofil nicht gefunden"
+
+msgid "slicing failed or the plate is not printable"
+msgstr "Slicen fehlgeschlagen oder Platte nicht druckbar"
+
+msgid "printer is offline"
+msgstr "Drucker ist offline"
+
+msgid "was not sent. Continue with the next plate?"
+msgstr "wurde nicht gesendet. Mit der nächsten Platte weitermachen?"
+
+msgid "cancelled"
+msgstr "abgebrochen"
+
+msgid "not sent"
+msgstr "nicht gesendet"
+
+msgid "Sent:"
+msgstr "Gesendet:"
+
+msgid "Not sent:"
+msgstr "Nicht gesendet:"
+
+msgid "The run was cancelled."
+msgstr "Der Ablauf wurde abgebrochen."
+
 #~ msgid "Tip: If you want to replace it with another filament, right-click the filament and use \"Merge with\"."
 #~ msgstr "Tipp: Wenn Sie es durch ein anderes Filament ersetzen möchten, klicken Sie mit der rechten Maustaste auf das Filament und wählen Sie „Zusammenführen mit“."
 
