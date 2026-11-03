@@ -2770,6 +2770,8 @@ bool PartPlate::generate_plate_name_texture()
 	// bambustudiomulti: show the assigned printer next to the plate name
 	if (!m_assigned_dev_name.empty()) {
 		wxString printer_label = wxString::FromUTF8("\u2192 ") + from_u8(m_assigned_dev_name);
+		if (!m_assigned_bed_size.empty())
+			printer_label += wxString::FromUTF8(" \u00b7 ") + from_u8(m_assigned_bed_size);
 		cur_plate_name = cur_plate_name.empty() ? printer_label : cur_plate_name + "  " + printer_label;
 	}
 	wxGCDC   dc;
@@ -2822,6 +2824,67 @@ void PartPlate::set_assigned_printer(const std::string &dev_id, const std::strin
 	m_name_change             = true;
 	if (preset_changed)
 		update_slice_result_valid_state(false);
+}
+
+void PartPlate::update_assigned_bed_area(const Pointfs &raw_shape)
+{
+	Pointfs     rects;
+	std::string size_text;
+	if (!m_assigned_printer_preset.empty() && raw_shape.size() >= 3) {
+		const Preset *preset = wxGetApp().preset_bundle->printers.find_preset(m_assigned_printer_preset, false);
+		const ConfigOptionPoints *area = preset ? preset->config.option<ConfigOptionPoints>("printable_area") : nullptr;
+		if (area && area->values.size() >= 3) {
+			BoundingBoxf big(raw_shape);
+			BoundingBoxf small(area->values);
+			const double w_small = small.size().x(), h_small = small.size().y();
+			const double x0 = big.min.x(), y0 = big.min.y(), x1 = big.max.x(), y1 = big.max.y();
+			const double xs = std::min(x1, x0 + w_small), ys = std::min(y1, y0 + h_small);
+			char buf[64];
+			snprintf(buf, sizeof(buf), "%.0f×%.0f", w_small, h_small);
+			size_text = buf;
+			auto add_rect = [&rects](double ax, double ay, double bx, double by) {
+				rects.push_back(Vec2d(ax, ay)); rects.push_back(Vec2d(bx, ay));
+				rects.push_back(Vec2d(bx, by)); rects.push_back(Vec2d(ax, by));
+			};
+			if (xs < x1 - 0.5) add_rect(xs, y0, x1, y1);            // right strip
+			if (ys < y1 - 0.5) add_rect(x0, ys, xs, y1);            // top strip
+		}
+	}
+	if (rects != m_assigned_outside_rects || size_text != m_assigned_bed_size) {
+		m_assigned_outside_rects = rects;
+		m_assigned_bed_size      = size_text;
+		m_name_change            = true;
+		m_assigned_outside_triangles.reset();
+		if (m_plater != nullptr && !rects.empty()) {
+			ExPolygons polys;
+			for (size_t i = 0; i + 3 < rects.size(); i += 4) {
+				ExPolygon poly;
+				for (size_t k = 0; k < 4; ++k) poly.contour.append({scale_(rects[i + k](0)), scale_(rects[i + k](1))});
+				polys.push_back(poly);
+			}
+			std::vector<Vec2f> triangles;
+			for (const ExPolygon &poly : polys) {
+				auto t = triangulate_expolygon_2f(poly, NORMALS_UP);
+				triangles.insert(triangles.end(), t.begin(), t.end());
+			}
+			if (!m_assigned_outside_triangles.init_model_from_poly(triangles, GROUND_Z + 0.005f))
+				BOOST_LOG_TRIVIAL(error) << "Unable to create assigned bed area triangles";
+		}
+	}
+}
+
+void PartPlate::render_assigned_outside_area(bool selected)
+{
+	if (!m_assigned_outside_triangles.is_initialized()) return;
+	ColorRGBA color = selected ? ColorRGBA{0.765f, 0.7686f, 0.7686f, 1.0f} : ColorRGBA{0.9f, 0.9f, 0.9f, 1.0f};
+	m_assigned_outside_triangles.set_color(color);
+	m_assigned_outside_triangles.render_geometry();
+}
+
+void PartPlateList::update_assigned_bed_areas()
+{
+	if (m_shape.empty()) return;
+	set_shapes(m_shape, m_exclude_areas, m_wrapping_exclude_areas, m_extruder_areas, m_extruder_heights, m_logo_texture_filename, m_height_to_lid, m_height_to_rod);
 }
 
 std::string remove_invisible_ascii(const std::string &name)
@@ -6725,6 +6788,9 @@ void PartPlateList::render_instance(bool bottom, bool only_current, bool only_bo
             shader->set_uniform("projection_matrix", proj_mat);
             if (!bottom) { // draw background
                 render_exclude_area(force_background_color); // for selected_plate
+                // bambustudiomulti: area outside the assigned printer's bed
+                if (!force_background_color && m_current_plate >= 0 && m_current_plate < (int)m_plate_list.size())
+                    m_plate_list[m_current_plate]->render_assigned_outside_area(true);
                 render_heat_soak_area(force_background_color);
                 if(wxGetApp().plater()->get_enable_wrapping_detection()){
                     if(!m_wrapping_detection_triangles.is_initialized()){
@@ -6774,6 +6840,17 @@ void PartPlateList::render_instance(bool bottom, bool only_current, bool only_bo
                     render_unselected_grid(bottom); // for unselected_plate
                 }
             }
+       }
+       // bambustudiomulti: area outside the assigned printer's bed of the unselected plates
+       if (!only_current && !bottom && !force_background_color) {
+           if (enable_multi_instance) wxGetApp().bind_shader(shader);
+           shader->set_uniform("projection_matrix", proj_mat);
+           for (int i = 0; i < (int)m_plate_list.size() && i < (int)m_plate_trans.size(); ++i) {
+               if (i == m_current_plate) continue;
+               shader->set_uniform("view_model_matrix", view_mat * m_plate_trans[i].get_matrix());
+               m_plate_list[i]->render_assigned_outside_area(false);
+           }
+           if (enable_multi_instance) wxGetApp().unbind_shader();
        }
        if (!enable_multi_instance) {
            wxGetApp().unbind_shader();
@@ -7089,7 +7166,12 @@ bool PartPlateList::set_shapes(const Pointfs              &shape,
 		Vec2d pos;
 
 		pos = compute_shape_position(i, m_plate_cols);
-		plate->set_shape(shape, exclude_areas, extruder_areas, extruder_heights, pos, height_to_lid, height_to_rod);
+		// bambustudiomulti: the part outside the assigned printer's bed counts as excluded area of this plate
+		plate->update_assigned_bed_area(shape);
+		Pointfs plate_exclude_areas = exclude_areas;
+		const Pointfs &outside_rects = plate->get_assigned_outside_rects();
+		plate_exclude_areas.insert(plate_exclude_areas.end(), outside_rects.begin(), outside_rects.end());
+		plate->set_shape(shape, plate_exclude_areas, extruder_areas, extruder_heights, pos, height_to_lid, height_to_rod);
 	}
 	is_load_bedtype_textures = false; //reload textures
     is_load_extruder_only_area_textures = false; // reload textures

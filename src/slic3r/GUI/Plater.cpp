@@ -9787,7 +9787,11 @@ public:
         std::vector<wxString>    sent;
         std::vector<wxString>    failed;
         int                      idle_checks = 0;
+        std::vector<wxString>    status;   // per entry of plates: current state text
+        std::string              original_printer_preset;
     } m_assigned_run;
+    void assigned_send_set_status(size_t pos, const wxString &state);
+    void assigned_send_show_progress();
     wxTimer *m_assigned_watchdog = nullptr; // detects slices that never started
     // set while the printer preset is switched by the assigned send run: keep objects on their plates
     bool m_keep_plate_layout = false;
@@ -11958,6 +11962,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if(auto* color_opt = config_loaded.option<ConfigOptionStrings>("filament_colour"))
                                 project_filament_count = color_opt->size();
                             partplate_list.load_from_3mf_structure(plate_data, project_filament_count);
+                            partplate_list.update_assigned_bed_areas(); // bambustudiomulti
                             partplate_list.update_slice_context_to_current_plate(background_process);
                             this->preview->update_gcode_result(partplate_list.get_current_slice_result());
                             release_PlateData_list(plate_data);
@@ -12454,6 +12459,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
                 if (plate_data.size() > 0) {
                     partplate_list.load_from_3mf_structure(plate_data, project_filament_count);
+                    partplate_list.update_assigned_bed_areas(); // bambustudiomulti
                     partplate_list.update_slice_context_to_current_plate(background_process);
                     this->preview->update_gcode_result(partplate_list.get_current_slice_result());
                     release_PlateData_list(plate_data);
@@ -27194,6 +27200,8 @@ void Plater::assign_printer_to_plate(int plate_idx, const std::string &dev_id, c
     if (!plate) return;
     if (dev_id.empty()) {
         plate->clear_assigned_printer();
+        p->partplate_list.update_assigned_bed_areas();
+        update();
         return;
     }
     std::string preset_name;
@@ -27208,6 +27216,7 @@ void Plater::assign_printer_to_plate(int plate_idx, const std::string &dev_id, c
         return;
     }
     plate->set_assigned_printer(dev_id, dev_name, preset_name);
+    p->partplate_list.update_assigned_bed_areas();
     update();
     if (p->main_frame) p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate);
 }
@@ -27252,13 +27261,46 @@ void Plater::send_to_assigned_printers()
     p->m_assigned_run        = Plater::priv::AssignedSendRun();
     p->m_assigned_run.active = true;
     p->m_assigned_run.plates = plates;
+    p->m_assigned_run.status.assign(plates.size(), _L("waiting"));
+    p->m_assigned_run.original_printer_preset = current_preset;
     p->main_frame->request_select_tab(MainFrame::TabPosition::tp3DEditor);
+    p->assigned_send_show_progress();
     p->assigned_send_step();
+}
+
+void Plater::priv::assigned_send_set_status(size_t pos, const wxString &state)
+{
+    if (pos < m_assigned_run.status.size()) m_assigned_run.status[pos] = state;
+    assigned_send_show_progress();
+}
+
+void Plater::priv::assigned_send_show_progress()
+{
+    if (!notification_manager) return;
+    notification_manager->close_notification_of_type(NotificationType::BsmAssignedSendProgress);
+    if (!m_assigned_run.active) return;
+    wxString text = _L("Send to assigned printers") + "\n";
+    for (size_t i = 0; i < m_assigned_run.plates.size(); ++i) {
+        PartPlate *plate = partplate_list.get_plate(m_assigned_run.plates[i]);
+        wxString   name  = plate ? from_u8(plate->get_assigned_dev_name()) : wxString();
+        text += wxString::Format(_L("Plate %d"), m_assigned_run.plates[i] + 1) + wxString::FromUTF8(" \u2192 ") + name + ": " +
+                (i < m_assigned_run.status.size() ? m_assigned_run.status[i] : wxString()) + "\n";
+    }
+    notification_manager->push_notification(NotificationType::BsmAssignedSendProgress, NotificationManager::NotificationLevel::ImportantNotificationLevel,
+                                            into_u8(text), into_u8(_L("Cancel")), [this](wxEvtHandler *) {
+                                                if (m_assigned_run.active) {
+                                                    q->CallAfter([this]() { assigned_send_finish(true); });
+                                                }
+                                                return true;
+                                            });
 }
 
 void Plater::priv::assigned_send_next(const wxString &failure)
 {
-    if (!failure.empty()) m_assigned_run.failed.push_back(failure);
+    if (!failure.empty()) {
+        m_assigned_run.failed.push_back(failure);
+        assigned_send_set_status(m_assigned_run.pos, _L("not sent"));
+    }
     m_assigned_run.pos++;
     q->CallAfter([this]() { assigned_send_step(); });
 }
@@ -27283,6 +27325,7 @@ void Plater::priv::assigned_send_step()
             assigned_send_next(plate_label + ": " + _L("printer profile not found") + " (" + from_u8(wanted) + ")");
             return;
         }
+        assigned_send_set_status(m_assigned_run.pos, _L("switching printer profile"));
         m_keep_plate_layout = true;
         wxGetApp().get_tab(Preset::TYPE_PRINTER)->select_preset(wanted);
         if (bundle->printers.get_selected_preset_name() != wanted) {
@@ -27306,6 +27349,7 @@ void Plater::priv::assigned_send_step()
         q->CallAfter([this, plate_idx]() { assigned_send_plate(plate_idx); });
         return;
     }
+    assigned_send_set_status(m_assigned_run.pos, _L("slicing"));
     m_assigned_run.waiting_slice = true;
     m_assigned_run.idle_checks   = 0;
     main_frame->request_select_tab(MainFrame::TabPosition::tpPreview);
@@ -27343,7 +27387,7 @@ void Plater::priv::assigned_send_plate(int plate_idx)
 {
     PartPlate *plate = partplate_list.get_plate(plate_idx);
     if (!plate) { assigned_send_next(); return; }
-    const wxString label = wxString::Format(_L("Plate %d"), plate_idx + 1) + " → " + from_u8(plate->get_assigned_dev_name());
+    const wxString label = wxString::Format(_L("Plate %d"), plate_idx + 1) + wxString::FromUTF8(" \u2192 ") + from_u8(plate->get_assigned_dev_name());
 
     Slic3r::DeviceManager *dev = wxGetApp().getDeviceManager();
     MachineObject         *obj = dev ? dev->get_my_machine(plate->get_assigned_dev_id()) : nullptr;
@@ -27354,6 +27398,7 @@ void Plater::priv::assigned_send_plate(int plate_idx)
     dev->set_selected_machine(plate->get_assigned_dev_id());
 
     // the regular print dialog: printer preselected, AMS mapping and options as usual
+    assigned_send_set_status(m_assigned_run.pos, _L("waiting for \"Send\""));
     m_assigned_run.job_sent = false;
     if (!m_select_machine_dlg) m_select_machine_dlg = new SelectMachineDialog(q);
     m_select_machine_dlg->set_print_type(PrintFromType::FROM_NORMAL);
@@ -27364,6 +27409,7 @@ void Plater::priv::assigned_send_plate(int plate_idx)
 
     if (!m_assigned_run.active) return;
     if (m_assigned_run.job_sent) {
+        assigned_send_set_status(m_assigned_run.pos, _L("sent"));
         m_assigned_run.sent.push_back(label);
         assigned_send_next();
         return;
@@ -27383,8 +27429,20 @@ void Plater::priv::assigned_send_plate(int plate_idx)
 
 void Plater::priv::assigned_send_finish(bool aborted)
 {
+    if (!m_assigned_run.active) return;
     m_assigned_run.active        = false;
     m_assigned_run.waiting_slice = false;
+    if (m_assigned_watchdog) m_assigned_watchdog->Stop();
+    if (notification_manager) notification_manager->close_notification_of_type(NotificationType::BsmAssignedSendProgress);
+    // back to the printer profile the project had before the run, plates stay as they are
+    PresetBundle *bundle = wxGetApp().preset_bundle;
+    const std::string original = m_assigned_run.original_printer_preset;
+    if (!original.empty() && bundle->printers.get_selected_preset_name() != original && bundle->printers.find_preset(original, false)) {
+        m_keep_plate_layout = true;
+        wxGetApp().get_tab(Preset::TYPE_PRINTER)->select_preset(original);
+        q->CallAfter([this]() { m_keep_plate_layout = false; });
+    }
+    main_frame->request_select_tab(MainFrame::TabPosition::tp3DEditor);
     wxString msg;
     if (!m_assigned_run.sent.empty()) {
         msg += _L("Sent:") + "\n";
@@ -30996,6 +31054,7 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
             if (dev_id != curr_plate->get_assigned_dev_id()) {
                 if (dev_id.empty()) {
                     curr_plate->clear_assigned_printer();
+                    p->partplate_list.update_assigned_bed_areas();
                     if (p->main_frame) p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate);
                 }
                 else

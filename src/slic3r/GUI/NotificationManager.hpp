@@ -188,6 +188,8 @@ enum class NotificationType
     BBLAssemblyFarFromOrigin,
 	BBLArcFittingInfo,
     BBLCalibExtruderMismatch,
+    // bambustudiomulti: progress of "send to assigned printers"
+    BsmAssignedSendProgress,
     NotificationTypeCount
 
 };

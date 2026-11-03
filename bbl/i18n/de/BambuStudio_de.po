@@ -21154,6 +21154,22 @@ msgstr "Nicht gesendet:"
 msgid "The run was cancelled."
 msgstr "Der Ablauf wurde abgebrochen."
 
+# bambustudiomulti
+msgid "waiting"
+msgstr "wartet"
+
+msgid "switching printer profile"
+msgstr "Druckerprofil wird gewechselt"
+
+msgid "slicing"
+msgstr "wird gesliced"
+
+msgid "waiting for \"Send\""
+msgstr "wartet auf „Senden“"
+
+msgid "sent"
+msgstr "gesendet"
+
 #~ msgid "Tip: If you want to replace it with another filament, right-click the filament and use \"Merge with\"."
 #~ msgstr "Tipp: Wenn Sie es durch ein anderes Filament ersetzen möchten, klicken Sie mit der rechten Maustaste auf das Filament und wählen Sie „Zusammenführen mit“."
 

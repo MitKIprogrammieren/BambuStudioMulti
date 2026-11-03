@@ -170,6 +170,10 @@ private:
     std::string          m_assigned_dev_id;        // MachineObject dev_id
     std::string          m_assigned_dev_name;      // display name of the printer
     std::string          m_assigned_printer_preset; // system printer preset matching the device
+    // area of this plate outside the assigned printer's bed (plate-local, groups of 4 points = rectangles)
+    Pointfs              m_assigned_outside_rects;
+    std::string          m_assigned_bed_size;      // e.g. "256x256"
+    GLModel              m_assigned_outside_triangles;
     GLModel              m_plate_name_icon;
     mutable unsigned int m_plate_name_vbo_id{0};
     GLTexture            m_name_texture;
@@ -320,6 +324,10 @@ public:
     const std::string &get_assigned_printer_preset() const { return m_assigned_printer_preset; }
     void               set_assigned_printer(const std::string &dev_id, const std::string &dev_name, const std::string &printer_preset);
     void               clear_assigned_printer() { set_assigned_printer("", "", ""); }
+    // recompute the area outside the assigned printer's bed for the given plate shape (plate-local)
+    void               update_assigned_bed_area(const Pointfs &raw_shape);
+    const Pointfs     &get_assigned_outside_rects() const { return m_assigned_outside_rects; }
+    void               render_assigned_outside_area(bool selected);
     // used when loading a project: no snapshot, no slice invalidation
     void               load_assigned_printer(const std::string &dev_id, const std::string &dev_name, const std::string &printer_preset)
     {
@@ -995,6 +1003,8 @@ public:
 
     //reload all objects
     int reload_all_objects(bool except_locked = false, int plate_index = -1);
+    // bambustudiomulti: re-apply the bed shapes so every plate shows the bed of its assigned printer
+    void update_assigned_bed_areas();
 
     //reload objects for newly created plate
     int construct_objects_list_for_new_plate(int plate_index);

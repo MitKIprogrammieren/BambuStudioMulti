@@ -5,7 +5,9 @@ Dieser Fork von Bambu Studio ergänzt eine Druckerzuteilung pro Platte. Jede Pla
 ## Bedienung
 
 1. **Drucker zuteilen:** Klick im Tab „Vorbereiten“ auf das Zahnrad über einer Platte. Ganz oben im Dialog steht jetzt **Drucker**. Dort wählst du einen deiner Drucker (gebunden oder im LAN) oder „Kein Drucker zugeteilt“.
-2. Der zugeteilte Drucker steht danach direkt über der Platte neben dem Plattennamen (z. B. `→ P2S Büro`).
+2. Der zugeteilte Drucker steht danach direkt über der Platte neben dem Plattennamen, mit der Größe seines Druckbetts (z. B. `→ P2S Büro · 256×256`).
+   Ist das Druckbett kleiner als das des Projekt-Druckers, wird der Rest der Platte grau als Sperrbereich dargestellt. Objekte, die hineinragen, gelten sofort als „außerhalb“.
+   Tipp: Wähle als Drucker des Projekts den mit dem größten Druckbett. Dann haben alle Platten genug Platz.
 3. **Senden:** Öffne oben rechts das Menü am Druckknopf und wähle **An zugewiesene Drucker senden**. Klick dann auf den Knopf.
 
 Ablauf pro Platte:
@@ -14,6 +16,8 @@ Ablauf pro Platte:
 - Die Platte wird gesliced.
 - Der normale Druckdialog öffnet sich, mit dem zugeteilten Drucker vorausgewählt. AMS-Zuordnung, Kalibrierung und Zeitraffer funktionieren wie gewohnt. Mit **Senden** geht die Platte an den Drucker, danach folgt automatisch die nächste.
 - Zum Schluss zeigt eine Übersicht, welche Platten gesendet wurden und welche nicht (z. B. Drucker offline).
+
+Unten rechts im 3D-Fenster zeigt ein Hinweis den Fortschritt pro Platte („wartet“, „wird gesliced“, „wartet auf ‚Senden‘“, „gesendet“) und hat einen Knopf zum Abbrechen. Nach dem Ablauf wechselt das Projekt zurück auf das Druckerprofil, das vorher gewählt war.
 
 Platten werden nach Druckerprofil gruppiert. So wird das Profil so selten wie möglich gewechselt, und die Platten des aktuell gewählten Druckers kommen zuerst dran.
 
@@ -31,6 +35,8 @@ cd BambuStudioMulti
 - Die fertige App liegt in **~/Applications/BambuStudio Multi.app**. Das offizielle Bambu Studio bleibt unverändert daneben.
 - CMake 3.31 und Ninja installiert das Skript in den Ordner `.build-werkzeuge` im Repo. Deine Homebrew-Installation wird nicht umgestellt.
 - Jeder Lauf schreibt ein Protokoll `build-DATUM.log` in den Repo-Ordner.
+
+**Einfacher:** Doppelklick im Finder auf **„BambuStudio Multi aktualisieren.command“** im Repo-Ordner. Das öffnet das Terminal, holt den neuesten Stand, baut die App und startet sie danach.
 
 Optionen: `--ohne-update` (kein git pull), `--sauber` (App-Build neu von vorn), `--abhaengigkeiten-neu` (Abhängigkeiten komplett neu bauen).
 
