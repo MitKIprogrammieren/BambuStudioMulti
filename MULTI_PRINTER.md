@@ -1,4 +1,4 @@
-# bambustudiomulti – Drucker pro Platte
+# Bambu Lab Studio Multi – Drucker pro Platte
 
 Dieser Fork von Bambu Studio ergänzt eine Druckerzuteilung pro Platte. Jede Platte im Projekt kann einen eigenen Drucker bekommen. Danach slicet ein einziger Knopf alle Platten mit dem Profil ihres Druckers und schickt jede Platte an den zugeteilten Drucker.
 
@@ -32,15 +32,15 @@ cd BambuStudioMulti
 ```
 
 - Der **erste Lauf** baut alle Abhängigkeiten und dauert etwa 1–2 Stunden. Jeder weitere Lauf holt den neuesten Stand und baut nur die App neu, das dauert etwa 10–30 Minuten.
-- Die fertige App liegt in **~/Applications/BambuStudio Multi.app**. Das offizielle Bambu Studio bleibt unverändert daneben.
+- Die fertige App liegt in **~/Applications/Bambu Lab Studio Multi.app**. Das offizielle Bambu Studio bleibt unverändert daneben.
 - CMake 3.31 und Ninja installiert das Skript in den Ordner `.build-werkzeuge` im Repo. Deine Homebrew-Installation wird nicht umgestellt.
 - Jeder Lauf schreibt ein Protokoll `build-DATUM.log` in den Repo-Ordner.
 
-**Einfacher:** Doppelklick im Finder auf **„BambuStudio Multi aktualisieren.command“** im Repo-Ordner. Das öffnet das Terminal, holt den neuesten Stand, baut die App und startet sie danach.
+**Einfacher:** Doppelklick im Finder auf **„Bambu Lab Studio Multi aktualisieren.command“** im Repo-Ordner. Das öffnet das Terminal, holt den neuesten Stand, baut die App und startet sie danach.
 
 Optionen: `--ohne-update` (kein git pull), `--sauber` (App-Build neu von vorn), `--abhaengigkeiten-neu` (Abhängigkeiten komplett neu bauen).
 
-Bambu Studio Multi nutzt dieselben Einstellungen, Druckerprofile und dieselbe Anmeldung wie das offizielle Bambu Studio. Öffne nicht beide Apps gleichzeitig.
+Bambu Lab Studio Multi nutzt dieselben Einstellungen, Druckerprofile und dieselbe Anmeldung wie das offizielle Bambu Studio. Öffne nicht beide Apps gleichzeitig.
 
 ## Gespeichert in der 3MF
 
