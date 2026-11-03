@@ -6404,7 +6404,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
             if (!m_mouse.ignore_right_up && m_gizmos.get_current_type() == GLGizmosManager::EType::Undefined) {
                 //BBS post right click event
-                if (!m_hover_plate_idxs.empty()) {
+                // bambustudiomulti: a part under the mouse gets the object menu, the plate menu only on free plate area
+                if (!m_hover_plate_idxs.empty() && m_hover_volume_idxs.empty()) {
                     post_event(RBtnPlateEvent(EVT_GLCANVAS_PLATE_RIGHT_CLICK, { logical_pos, m_hover_plate_idxs.front() }));
                 }
                 else {
