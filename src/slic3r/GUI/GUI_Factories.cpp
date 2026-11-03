@@ -3,6 +3,8 @@
 #include "libslic3r/Model.hpp"
 
 #include "GUI_Factories.hpp"
+#include "DeviceManager.hpp"
+#include "DeviceCore/DevManager.h"
 #include "GUI_ObjectList.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
@@ -1906,6 +1908,7 @@ wxMenu* MenuFactory::plate_menu()
 {
     append_menu_item_locked(&m_plate_menu);
     append_menu_item_plate_name(&m_plate_menu);
+    append_menu_item_plate_printer(&m_plate_menu);
     append_menu_item_show_labels(&m_plate_menu);
     {
         NetworkAgent* agent = GUI::wxGetApp().getAgent();
@@ -2548,6 +2551,46 @@ void MenuFactory::append_menu_item_show_labels(wxMenu *menu)
         evt.Enable(plater()->is_view3D_shown());
         evt.Check(plate_is_by_object() ? plater()->are_view3D_object_labels_shown() : plater()->are_view3D_layer_labels_shown());
     }, labels_item->GetId());
+}
+
+// bambustudiomulti: assign a printer to the plate directly from the plate context menu
+void MenuFactory::append_menu_item_plate_printer(wxMenu *menu)
+{
+    const wxString name = _L("Assign printer");
+    const int item_id = menu->FindItem(name);
+    if (item_id != wxNOT_FOUND) menu->Destroy(item_id);
+
+    PartPlate *plate = plater()->get_partplate_list().get_selected_plate();
+    if (!plate) return;
+    const int         plate_idx = plate->get_index();
+    const std::string current   = plate->get_assigned_dev_id();
+
+    wxMenu *sub_menu = new wxMenu();
+    auto add = [&](const std::string &dev_id, const std::string &dev_name, const wxString &label) {
+        wxMenuItem *item = sub_menu->AppendCheckItem(wxID_ANY, label);
+        item->Check(dev_id == current);
+        m_parent->Bind(wxEVT_MENU, [plate_idx, dev_id, dev_name](wxCommandEvent &) {
+            plater()->assign_printer_to_plate(plate_idx, dev_id, dev_name);
+        }, item->GetId());
+    };
+    add("", "", _L("No printer assigned"));
+    sub_menu->AppendSeparator();
+    bool current_listed = current.empty();
+    if (Slic3r::DeviceManager *dev = wxGetApp().getDeviceManager()) {
+        for (auto &[dev_id, obj] : dev->get_my_machine_list()) {
+            if (!obj) continue;
+            wxString label = from_u8(obj->get_dev_name());
+            wxString model = obj->get_printer_type_display_str();
+            if (!model.empty()) label += " (" + model + ")";
+            if (!obj->is_online()) label += " - " + _L("Offline");
+            add(dev_id, obj->get_dev_name(), label);
+            if (dev_id == current) current_listed = true;
+        }
+    }
+    if (!current_listed)
+        add(current, plate->get_assigned_dev_name(), from_u8(plate->get_assigned_dev_name()) + " - " + _L("Not found"));
+
+    append_submenu(menu, sub_menu, wxID_ANY, name, "", "", []() { return true; }, m_parent);
 }
 
 void MenuFactory::append_menu_item_plate_name(wxMenu *menu)

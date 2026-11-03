@@ -2867,7 +2867,7 @@ void PartPlate::update_assigned_bed_area(const Pointfs &raw_shape)
 				auto t = triangulate_expolygon_2f(poly, NORMALS_UP);
 				triangles.insert(triangles.end(), t.begin(), t.end());
 			}
-			if (!m_assigned_outside_triangles.init_model_from_poly(triangles, GROUND_Z + 0.005f))
+			if (!m_assigned_outside_triangles.init_model_from_poly(triangles, GROUND_Z + 0.02f))
 				BOOST_LOG_TRIVIAL(error) << "Unable to create assigned bed area triangles";
 		}
 	}
@@ -2876,7 +2876,12 @@ void PartPlate::update_assigned_bed_area(const Pointfs &raw_shape)
 void PartPlate::render_assigned_outside_area(bool selected)
 {
 	if (!m_assigned_outside_triangles.is_initialized()) return;
-	ColorRGBA color = selected ? ColorRGBA{0.765f, 0.7686f, 0.7686f, 1.0f} : ColorRGBA{0.9f, 0.9f, 0.9f, 1.0f};
+	(void)selected;
+	// same colour as the 3D view background, so the plate looks like the smaller bed of the assigned printer
+	ColorRGBA color = m_partplate_list && m_partplate_list->m_is_dark ?
+	                      ColorRGBA{0.329f, 0.329f, 0.353f, 1.0f} :
+	                      ColorRGBA{RenderColor::colors[RenderCol_3D_Background].x, RenderColor::colors[RenderCol_3D_Background].y,
+	                                RenderColor::colors[RenderCol_3D_Background].z, 1.0f};
 	m_assigned_outside_triangles.set_color(color);
 	m_assigned_outside_triangles.render_geometry();
 }
@@ -3863,6 +3868,8 @@ void PartPlate::render(bool bottom, bool only_body, bool force_background_color,
         render_height_limit(mode);
         wxGetApp().unbind_shader();
     }
+    // bambustudiomulti: a smaller assigned bed shows no foreign bed texture
+    const bool smaller_assigned_bed = !m_assigned_outside_rects.empty();
     {
         const auto& shader = wxGetApp().get_shader("printbed");
         wxGetApp().bind_shader(shader);
@@ -3871,7 +3878,7 @@ void PartPlate::render(bool bottom, bool only_body, bool force_background_color,
         shader->set_uniform("projection_matrix", proj_mat);
         shader->set_uniform("svg_source", 0);
         shader->set_uniform("transparent_background", 0);
-         if (!bottom && m_selected && !force_background_color) {//bed all icon
+         if (!bottom && m_selected && !force_background_color && !smaller_assigned_bed) {//bed all icon
             if (m_partplate_list)
                render_logo(bottom, m_partplate_list->render_cali_logo && render_cali);
             else
@@ -3895,6 +3902,15 @@ void PartPlate::render(bool bottom, bool only_body, bool force_background_color,
              }
          }
          wxGetApp().unbind_shader();
+    }
+    // bambustudiomulti: hide the part of the plate outside the assigned printer's bed (drawn in background colour above grid)
+    if (!bottom && !force_background_color && smaller_assigned_bed) {
+        const auto& shader = wxGetApp().get_shader("flat");
+        wxGetApp().bind_shader(shader);
+        shader->set_uniform("view_model_matrix", view_mat * m_partplate_list->m_plate_trans[m_plate_index].get_matrix());
+        shader->set_uniform("projection_matrix", proj_mat);
+        render_assigned_outside_area(m_selected);
+        wxGetApp().unbind_shader();
     }
 }
 
@@ -6788,9 +6804,6 @@ void PartPlateList::render_instance(bool bottom, bool only_current, bool only_bo
             shader->set_uniform("projection_matrix", proj_mat);
             if (!bottom) { // draw background
                 render_exclude_area(force_background_color); // for selected_plate
-                // bambustudiomulti: area outside the assigned printer's bed
-                if (!force_background_color && m_current_plate >= 0 && m_current_plate < (int)m_plate_list.size())
-                    m_plate_list[m_current_plate]->render_assigned_outside_area(true);
                 render_heat_soak_area(force_background_color);
                 if(wxGetApp().plater()->get_enable_wrapping_detection()){
                     if(!m_wrapping_detection_triangles.is_initialized()){
@@ -6840,17 +6853,6 @@ void PartPlateList::render_instance(bool bottom, bool only_current, bool only_bo
                     render_unselected_grid(bottom); // for unselected_plate
                 }
             }
-       }
-       // bambustudiomulti: area outside the assigned printer's bed of the unselected plates
-       if (!only_current && !bottom && !force_background_color) {
-           if (enable_multi_instance) wxGetApp().bind_shader(shader);
-           shader->set_uniform("projection_matrix", proj_mat);
-           for (int i = 0; i < (int)m_plate_list.size() && i < (int)m_plate_trans.size(); ++i) {
-               if (i == m_current_plate) continue;
-               shader->set_uniform("view_model_matrix", view_mat * m_plate_trans[i].get_matrix());
-               m_plate_list[i]->render_assigned_outside_area(false);
-           }
-           if (enable_multi_instance) wxGetApp().unbind_shader();
        }
        if (!enable_multi_instance) {
            wxGetApp().unbind_shader();
