@@ -1,6 +1,8 @@
 #include "libslic3r/libslic3r.h"
 
 #include "3DBed.hpp"
+#include <boost/filesystem.hpp>
+#include "libslic3r/Preset.hpp"
 
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ClipperUtils.hpp"
@@ -661,6 +663,22 @@ void Bed3D::update_bed_triangles()
     const_cast<BoundingBoxf3 &>(m_extended_bounding_box)  = calc_extended_bounding_box();
 }
 
+// bambustudiomulti: bed model file of the printer assigned to the current plate, if that bed is smaller
+static std::string bsm_current_plate_bed_model()
+{
+    Plater *plater = wxGetApp().plater();
+    if (!plater || !wxGetApp().preset_bundle) return {};
+    PartPlate *plate = plater->get_partplate_list().get_curr_plate();
+    if (!plate || plate->get_assigned_outside_rects().empty()) return {};
+    const Preset *preset = wxGetApp().preset_bundle->printers.find_preset(plate->get_assigned_printer_preset(), false);
+    if (!preset) return {};
+    std::string file = PresetUtils::system_printer_bed_model(*preset);
+    boost::system::error_code ec;
+    if (file.empty() || !boost::filesystem::exists(file, ec)) return {};
+    std::replace(file.begin(), file.end(), '\\', '/');
+    return file;
+}
+
 void Bed3D::render_model() const
 {
     if (m_model_filename.empty())
@@ -674,6 +692,24 @@ void Bed3D::render_model() const
         update_model_offset();
     }
 
+    // bambustudiomulti: the current plate shows the original bed of its assigned printer
+    Vec3d model_offset = m_model_offset;
+    bool  use_override = false;
+    const std::string override_file = bsm_current_plate_bed_model();
+    if (!override_file.empty()) {
+        GLModel *override_model = const_cast<GLModel *>(&m_plate_override_model);
+        if (override_model->get_filename() != override_file && override_model->init_from_file(override_file))
+            override_model->set_color(-1, m_is_dark ? DEFAULT_MODEL_COLOR_DARK : DEFAULT_MODEL_COLOR);
+        if (override_model->get_filename() == override_file) {
+            override_model->set_color(-1, m_is_dark ? DEFAULT_MODEL_COLOR_DARK : DEFAULT_MODEL_COLOR);
+            model        = override_model;
+            use_override = true;
+            // BBL bed models have their origin at the bed's (0,0) corner
+            const BoundingBoxf3 bv = m_build_volume.bounding_volume();
+            model_offset           = Vec3d(bv.min.x(), bv.min.y(), -0.41 + GROUND_Z);
+        }
+    }
+
     if (!model->get_filename().empty()) {
         const Camera &     camera      = wxGetApp().plater()->get_camera();
         const Transform3d &view_matrix = camera.get_view_matrix();
@@ -682,13 +718,13 @@ void Bed3D::render_model() const
         if (shader != nullptr) {
             wxGetApp().bind_shader(shader);
             shader->set_uniform("emission_factor", 0.0f);
-            const Transform3d model_matrix = Geometry::assemble_transform(m_model_offset);
+            const Transform3d model_matrix = Geometry::assemble_transform(model_offset);
             shader->set_uniform("volume_world_matrix",  model_matrix);
             shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
             shader->set_uniform("projection_matrix", projection_matrix);
             const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
             shader->set_uniform("view_normal_matrix", view_normal_matrix);
-            if (m_build_volume.get_extruder_area_count() > 0) {
+            if (m_build_volume.get_extruder_area_count() > 0 && !use_override) {
                 auto printable_area = m_build_volume.printable_area();
                 std::array<float, 4> full_print_volume = {(float)printable_area[0].x(), (float)printable_area[0].y(), (float)printable_area[2].x(), (float)printable_area[2].y()};
                 shader->set_uniform("full_print_volume", full_print_volume);

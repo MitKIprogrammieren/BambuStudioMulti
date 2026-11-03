@@ -577,6 +577,8 @@ public:
     bool has_any_assigned_plate() const;
     // slice every assigned plate with its printer profile and send it to its printer
     void send_to_assigned_printers();
+    // slice the plate (current if -1) with the profile of this printer and send it there
+    void send_plate_to_printer(int plate_idx, const std::string &dev_id);
     bool is_sending_to_assigned_printers() const;
     void export_gcode(bool prefer_removable);
     void export_gcode_3mf(bool export_all = false);

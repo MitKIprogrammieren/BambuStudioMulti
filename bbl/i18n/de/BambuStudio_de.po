@@ -21173,6 +21173,18 @@ msgstr "gesendet"
 msgid "Assign printer"
 msgstr "Drucker zuteilen"
 
+msgid "Send to %s"
+msgstr "An %s senden"
+
+msgid "The current plate has no printable objects."
+msgstr "Die aktuelle Platte enthält keine druckbaren Objekte."
+
+msgid "Skip this plate and continue with the next one?"
+msgstr "Diese Platte überspringen und mit der nächsten weitermachen?"
+
+msgid "Check the messages in the preview."
+msgstr "Sieh dir die Meldungen in der Vorschau an."
+
 #~ msgid "Tip: If you want to replace it with another filament, right-click the filament and use \"Merge with\"."
 #~ msgstr "Tipp: Wenn Sie es durch ein anderes Filament ersetzen möchten, klicken Sie mit der rechten Maustaste auf das Filament und wählen Sie „Zusammenführen mit“."
 

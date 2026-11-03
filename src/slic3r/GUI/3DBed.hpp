@@ -99,6 +99,8 @@ private:
     //GLTexture m_temp_texture;
     GLModel m_model;
     Vec3d m_model_offset{ Vec3d::Zero() };
+    // bambustudiomulti: bed model of the printer assigned to the current plate (when its bed is smaller)
+    GLModel m_plate_override_model;
     unsigned int m_vbo_id{ 0 };
     Axes m_axes;
 

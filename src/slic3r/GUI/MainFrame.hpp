@@ -281,8 +281,11 @@ public:
         eExportAllSlicedFile = 8,
         ePrintMultiMachine   = 9,
         eSendMultiApp        = 10,
-        ePrintAssigned       = 11  // bambustudiomulti: send each plate to its assigned printer
+        ePrintAssigned       = 11, // bambustudiomulti: send each plate to its assigned printer
+        ePrintToDevice       = 12  // bambustudiomulti: send the current plate to m_print_target_dev
     };
+
+    std::string m_print_target_dev; // bambustudiomulti: printer for ePrintToDevice
 
     void update_layout();
 
