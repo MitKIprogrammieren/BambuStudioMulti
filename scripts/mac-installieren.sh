@@ -87,6 +87,12 @@ if [ "$UPDATE" = "1" ]; then
 fi
 echo "Stand: $(git -C "$REPO_DIR" log -1 --format='%h %s')"
 
+# Deutsche Texte aus der .po-Datei neu übersetzen (der normale Build macht das nicht)
+if command -v msgfmt >/dev/null 2>&1 && [ -f "$REPO_DIR/bbl/i18n/de/BambuStudio_de.po" ]; then
+  msgfmt -o "$REPO_DIR/resources/i18n/de/BambuStudio.mo" "$REPO_DIR/bbl/i18n/de/BambuStudio_de.po" \
+    && echo "Deutsche Übersetzung aktualisiert."
+fi
+
 # ---------------------------------------------------------------- Abhängigkeiten
 cd "$REPO_DIR"
 if [ "$DEPS_NEU" = "1" ]; then
